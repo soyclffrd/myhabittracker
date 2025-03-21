@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { format } from 'date-fns';
 import { Check } from 'lucide-react-native';
 import { Habit } from '@/types/habit';
@@ -12,6 +12,25 @@ interface HabitCardProps {
 
 export function HabitCard({ habit, onToggle, onPress }: HabitCardProps) {
   const isCompletedToday = habit.completedDates.includes(format(new Date(), 'yyyy-MM-dd'));
+  const streakAnimation = useRef(new Animated.Value(1)).current;
+
+  // Animate the streak when the habit is toggled
+  useEffect(() => {
+    if (isCompletedToday) {
+      Animated.sequence([
+        Animated.timing(streakAnimation, {
+          toValue: 1.2,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(streakAnimation, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isCompletedToday]);
 
   return (
     <TouchableOpacity
@@ -31,9 +50,22 @@ export function HabitCard({ habit, onToggle, onPress }: HabitCardProps) {
           )}
           {/* Streak Display */}
           <View style={styles.streakContainer}>
-            <Text style={styles.streakIcon}>🔥</Text>
+            <Animated.Text
+              style={[styles.streakIcon, { transform: [{ scale: streakAnimation }] }]}
+            >
+              🔥
+            </Animated.Text>
             <Text style={styles.streakText}>{habit.streak || 0} days</Text>
           </View>
+        </View>
+        {/* Streak Progress Bar */}
+        <View style={styles.progressBar}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${(habit.streak / 7) * 100}%` }, // Adjust the milestone (e.g., 7 days)
+            ]}
+          />
         </View>
       </View>
       <TouchableOpacity
@@ -105,6 +137,18 @@ const styles = StyleSheet.create({
   streakText: {
     fontSize: 12,
     color: '#64748b',
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 2,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#6366f1',
+    borderRadius: 2,
   },
   checkButton: {
     width: 32,

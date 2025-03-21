@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   ActivityIndicator,
   TouchableOpacity,
   Animated,
@@ -26,9 +25,10 @@ export default function TodayScreen() {
     return false;
   });
 
-  const headerHeight = scrollY.interpolate({
+  // Animate the header's translateY and opacity
+  const headerTranslateY = scrollY.interpolate({
     inputRange: [0, 100],
-    outputRange: [200, 100],
+    outputRange: [0, -50], // Move the header up by 50 units
     extrapolate: 'clamp',
   });
 
@@ -37,6 +37,29 @@ export default function TodayScreen() {
     outputRange: [1, 0.8],
     extrapolate: 'clamp',
   });
+
+  // Streak animation
+  const streakAnimation = useRef(new Animated.Value(1)).current;
+
+  const animateStreak = () => {
+    Animated.sequence([
+      Animated.timing(streakAnimation, {
+        toValue: 1.2,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(streakAnimation, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  useEffect(() => {
+    // Trigger streak animation when habits are updated
+    animateStreak();
+  }, [habits]);
 
   if (loading) {
     return (
@@ -55,7 +78,15 @@ export default function TodayScreen() {
       />
 
       {/* Animated Header */}
-      <Animated.View style={[styles.header, { height: headerHeight, opacity: headerOpacity }]}>
+      <Animated.View
+        style={[
+          styles.header,
+          {
+            transform: [{ translateY: headerTranslateY }], // Use transform instead of height
+            opacity: headerOpacity,
+          },
+        ]}
+      >
         <View style={styles.headerContent}>
           <Text style={styles.date}>{format(new Date(), 'EEEE, MMMM d')}</Text>
           <Text style={styles.title}>Today's Habits</Text>
@@ -66,42 +97,41 @@ export default function TodayScreen() {
       </Animated.View>
 
       {/* Scrollable Content */}
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
+          { useNativeDriver: true } // Enable native driver for smoother animations
         )}
         scrollEventThrottle={16}
       >
-        <View style={styles.contentContainer}>
-          {todayHabits.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                No habits for today. Add some habits to get started!
-              </Text>
-            </View>
-          ) : (
-            todayHabits.map((habit) => (
-              <HabitCard
-                key={habit.id}
-                habit={habit}
-                onToggle={() => toggleHabitCompletion(habit.id)}
-                onPress={() => router.push(`/habit/${habit.id}`)}
-              />
-            ))
-          )}
-        </View>
-      </ScrollView>
+        {todayHabits.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              No habits for today. Add some habits to get started!
+            </Text>
+          </View>
+        ) : (
+          todayHabits.map((habit) => (
+            <HabitCard
+              key={habit.id}
+              habit={habit}
+              onToggle={() => toggleHabitCompletion(habit.id)}
+              onPress={() => router.push(`/habit/${habit.id}`)}
+            />
+          ))
+        )}
+      </Animated.ScrollView>
 
       {/* Floating Action Button (FAB) */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push('/habit/new-habit')}
       >
         <Ionicons name="add" size={28} color="#ffffff" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 }
@@ -159,11 +189,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
     paddingHorizontal: 24,
     paddingTop: 16,
-  },
-  contentContainer: {
-    paddingBottom: 24,
+    paddingBottom: 100, // Add extra padding at the bottom for the FAB
   },
   emptyContainer: {
     flex: 1,

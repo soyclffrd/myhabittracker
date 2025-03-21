@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Habit, HabitFormData, HabitCategory, HabitFilter } from '@/types/habit';
-import { format, isYesterday, isToday, addDays } from 'date-fns';
+import { format, addDays } from 'date-fns';
 
 const HABITS_STORAGE_KEY = '@habits';
 const CATEGORIES_STORAGE_KEY = '@categories';
@@ -19,6 +19,7 @@ export function useHabits() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<HabitFilter>({});
 
+  // Load data from AsyncStorage on mount
   useEffect(() => {
     loadData();
   }, []);
@@ -37,6 +38,7 @@ export function useHabits() {
       if (categoriesData) {
         setCategories(JSON.parse(categoriesData));
       } else {
+        // Save default categories if none exist
         await AsyncStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(DEFAULT_CATEGORIES));
       }
     } catch (error) {
@@ -67,13 +69,14 @@ export function useHabits() {
   const addHabit = async (habitData: HabitFormData) => {
     const newHabit: Habit = {
       ...habitData,
-      id: Date.now().toString(),
+      id: Date.now().toString(), // Generate a unique ID
       createdAt: new Date().toISOString(),
       completedDates: [],
       streak: 0, // Initialize streak to 0
       priority: habitData.priority || 'medium',
     };
-    await saveHabits([...habits, newHabit]);
+    const updatedHabits = [...habits, newHabit];
+    await saveHabits(updatedHabits);
   };
 
   const updateHabit = async (id: string, habitData: Partial<Habit>) => {
@@ -125,9 +128,10 @@ export function useHabits() {
   const addCategory = async (category: Omit<HabitCategory, 'id'>) => {
     const newCategory: HabitCategory = {
       ...category,
-      id: Date.now().toString(),
+      id: Date.now().toString(), // Generate a unique ID
     };
-    await saveCategories([...categories, newCategory]);
+    const updatedCategories = [...categories, newCategory];
+    await saveCategories(updatedCategories);
   };
 
   const updateCategory = async (id: string, categoryData: Partial<HabitCategory>) => {

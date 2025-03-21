@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
+  Animated,
 } from 'react-native';
 import { useHabits } from '@/hooks/useHabits';
 import { HabitCard } from '@/components/HabitCard';
@@ -16,6 +16,22 @@ export default function AllHabitsScreen() {
   const router = useRouter();
   const { habits, toggleHabitCompletion } = useHabits();
 
+  // Animation for scroll
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Animate the header's translateY and opacity
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, -50], // Move the header up by 50 units
+    extrapolate: 'clamp',
+  });
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0.8],
+    extrapolate: 'clamp',
+  });
+
   return (
     <View style={styles.container}>
       {/* Gradient Background */}
@@ -24,13 +40,30 @@ export default function AllHabitsScreen() {
         style={styles.background}
       />
 
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Animated Header */}
+      <Animated.View
+        style={[
+          styles.header,
+          {
+            transform: [{ translateY: headerTranslateY }], // Use transform instead of height
+            opacity: headerOpacity,
+          },
+        ]}
+      >
         <Text style={styles.title}>All Habits</Text>
-      </View>
+      </Animated.View>
 
-      {/* Habits List */}
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      {/* Scrollable Content */}
+      <Animated.ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true } // Enable native driver for smoother animations
+        )}
+        scrollEventThrottle={16}
+      >
         {habits.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
@@ -47,7 +80,7 @@ export default function AllHabitsScreen() {
             />
           ))
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Floating Action Button (FAB) */}
       <TouchableOpacity
@@ -96,8 +129,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
     paddingHorizontal: 24,
     paddingTop: 16,
+    paddingBottom: 100, // Add extra padding at the bottom for the FAB
   },
   emptyContainer: {
     flex: 1,
